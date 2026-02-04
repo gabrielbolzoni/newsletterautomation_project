@@ -9,15 +9,15 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from src.content_filter import extract_content_from_html, filter_news
 
 # If modifying these scopes, delete the file token.json.
-SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
+
 
 def email_reader():
     """Shows basic usage of the Gmail API.
     Lists the user's Gmail messages.
     """
+    SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -90,15 +90,3 @@ def email_reader():
         print(f"An error occurred: {error}")
 
     return news_list
-
-news_list = email_reader()
-
-filtered_content = extract_content_from_html(news_list)
-
-filtered_content[0]
-
-with open("config/credentials/api_keys.json","r") as f:
-    credentials_file = json.load(f)
-
-cleaned_content = [filter_news(content,credentials_file) for content in filtered_content]
-

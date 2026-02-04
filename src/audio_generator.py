@@ -1,25 +1,19 @@
 from pathlib import Path
-import openai
 from datetime import date
 from pathlib import Path
 import os
-from src.content_filter import filter_news
 import json
 from openai import OpenAI
 
-audio_folder_path = Path("data\\audio_files")
-os.makedirs(audio_folder_path, exist_ok=True)
-with open("config/credentials/api_keys.json","r") as f:
-    credentials_file = json.load(f)
 
-client = OpenAI(
+def generate_audio(newsletter_content: dict, credentials_file):
+    client = OpenAI(
     api_key=credentials_file["openAI"],
 )
-
-def generate_audio(newsletter_content: str, folder_path: str):
     source = newsletter_content["source"]
     file_name = f"{source}_{date.today().strftime('%Y_%m_%d')}.mp3"
-    file_path = folder_path.joinpath(file_name)
+    audio_folder_path = Path("data\\audio_files")
+    file_path = audio_folder_path.joinpath(file_name)
 
     with client.audio.speech.with_streaming_response.create(
         model="gpt-4o-mini-tts",
@@ -56,14 +50,4 @@ def generate_audio(newsletter_content: str, folder_path: str):
         ) as response:
                 response.stream_to_file(file_path)
 
-
-texto_final = filter_news(formatted_text,credentials_file)
-sender = "Deschamps"
-
-newsletter_content = {
-    "source": sender,
-    "content": texto_final
-}
-
-generate_audio(newsletter_content,audio_folder_path)
 
