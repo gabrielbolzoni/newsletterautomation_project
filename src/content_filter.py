@@ -2,7 +2,7 @@ from bs4 import BeautifulSoup
 import re
 from openai import OpenAI
 import json
-import lxml
+from datetime import datetime
 
 with open("config/credentials/api_keys.json","r") as f:
     credentials_file = json.load(f)
@@ -55,10 +55,10 @@ def extract_content_from_html(list_emails: list[dict]) -> list[str]:
             
     return list_emails_clean
 
-def filter_news(formatted_text:str,credentials_file) -> str:
+def filter_news(formatted_text:str,credentials_file) -> json:
     client = OpenAI(
     api_key=credentials_file["openAI"],
-)
+    )
     response = client.responses.create(
         model="gpt-5-nano",
         reasoning={"effort": "low"},
@@ -66,40 +66,54 @@ def filter_news(formatted_text:str,credentials_file) -> str:
             {
                 "role": "system",
                 "content": (
-                    "Você é um Agente de Curadoria de Conteúdo especializado em newsletters sobre notícias e tecnologia.\n"
-                    "Seu objetivo é separar notícias reais de conteúdo irrelevante.\n\n"
-                    "DEFINIÇÕES:\n"
-                    "- NOTÍCIA: Informação factual sobre tecnologia, ciência, negócios, economia ou acontecimentos do mundo.\n"
-                    "- RUÍDO: Propaganda, anúncio patrocinado, venda de curso, depoimento pessoal, "
-                    "chamada comercial, link de afiliado ou aviso administrativo.\n\n"
-                    "REGRAS:\n"
-                    "1. O texto de entrada contém vários blocos separados por \n\n--- TÓPICO:"
-                    "2. Analise cada bloco de forma independente.\n"
-                    "3. Se o bloco for RUÍDO, descarte-o completamente.\n"
-                    "4. Se o bloco for NOTÍCIA:\n"
-                    "   - Mantenha apenas o conteúdo informativo.\n"
-                    "   - Remova chamadas comerciais, CTAs e referências visuais.\n"
-                    "   - Não adicione informações novas.\n"
-                    "5. Preserve o texto em português.\n"
-                    "6. Não explique decisões nem adicione comentários.\n\n"
-                    "FORMATO DE SAÍDA:\n"
-                    "- Antes do conteúdo,informe o responsável pela newsletter, identificando seu nome através do mandante"
-                    "- Retorne somente os blocos classificados como NOTÍCIA.\n"
-                    "- O formato da saída deve ter um separados claro entre as notícias:\n"
-                    "Fonte: [Nome do Remetente]\n"
-                    "SEPARADOR"
-                    "[Conteúdo informativo 1]\n"
-                    "SEPARADOR"
-                    "[Conteúdo informativo 2]\n"
-                    "SEPARADOR"
-                    "- Não inclua texto antes ou depois do conteúdo final.\n\n"
+                    """Você é um Agente de Curadoria de Conteúdo especializado em newsletters de tecnologia e notícias.
+
+                    Sua tarefa é analisar um texto composto por vários blocos e retornar apenas as informações que são NOTÍCIAS reais, descartando qualquer tipo de RUÍDO.
+
+                    DEFINIÇÕES:
+                    - NOTÍCIA: Informação factual sobre tecnologia, ciência, negócios, economia ou acontecimentos do mundo.
+                    - RUÍDO: Propaganda, anúncio patrocinado, venda de curso, depoimento pessoal, chamada comercial, link de afiliado ou aviso administrativo.
+
+                    REGRAS:
+                    1. O texto de entrada contém vários blocos separados exatamente por "\n---\n".
+                    2. Analise cada bloco de forma independente.
+                    3. Blocos classificados como RUÍDO devem ser ignorados completamente.
+                    4. Para blocos classificados como NOTÍCIA:
+                    - Preserve apenas o conteúdo informativo.
+                    - Remova CTAs, chamadas comerciais, links e referências visuais.
+                    - Não reescreva de forma criativa.
+                    - Não adicione informações novas.
+                    5. Preserve o texto em português.
+                    6. Não explique decisões, não adicione comentários e não inclua texto fora do formato solicitado.
+
+                    FORMATO DE SAÍDA:
+                    - Retorne um único objeto JSON válido.
+                    - O JSON deve conter exatamente as chaves:
+                    - "source": string com o nome do remetente da newsletter.
+                    - "content": string contendo todas as notícias concatenadas.
+                    - Dentro de "content", separe cada notícia usando exatamente:
+                    "\n---\n"
+                    - Não inclua nenhum texto fora do JSON."""
+
                 )
             },
             {
                 "role": "user",
-                "content": f"TEXTO PARA ANÁLISE:\n{formatted_text}"
+                "content": f"""O texto abaixo começa com uma linha no formato:
+                                "FONTE: Nome do Remetente"
+
+                                Use esse valor para preencher o campo "source".
+
+                                TEXTO PARA ANÁLISE:
+                                {formatted_text}"""
             }
         ]
     )
-    return response.output_text
+    content = response.output_text
+    data_dict = json.loads(content)
+
+    file_name = f"data\\text_files\{datetime.now().strftime('%H-%M-%S')}.json"
+    with open(file_name, 'w', encoding='utf-8') as f:
+            json.dump(data_dict, f, ensure_ascii=False)
+    return data_dict
 
