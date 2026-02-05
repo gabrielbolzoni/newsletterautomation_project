@@ -28,8 +28,4 @@ cleaned_content = [filter_news(content,credentials_file) for content in filtered
 
 
 for content in cleaned_content:
-    source = content["source"]
-    file_name = f"{source}_{date.today().strftime('%Y_%m_%d')}.txt"
-    with open(file_name, 'w', encoding='utf-8') as file:
-            file.write(content["content"])
     generate_audio(content,credentials_file)
