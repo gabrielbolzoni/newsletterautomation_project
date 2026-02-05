@@ -1,4 +1,6 @@
 venv/
 .config/credentials/*
 .txt
-.mp3
+*.mp3
+*.json
+*.json
