@@ -4,3 +4,22 @@ venv/
 *.mp3
 *.json
 *.json
+
+postgres/
+db_data/
+
+# Ignora os logs de execução (podem ficar gigantescos rapidamente)
+logs/
+
+# Ignora arquivos de ambiente (onde estão suas API Keys e AIRFLOW_UID)
+.env
+
+# Ignora arquivos de identificação do Docker
+*.tar
+docker-context-config/
+
+# --- Python & Cache ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.cfg
