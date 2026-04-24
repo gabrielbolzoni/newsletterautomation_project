@@ -3,36 +3,34 @@
 import json
 from pathlib import Path
 import os
-from datetime import date
 from airflow.sdk import DAG, task
 from datetime import datetime
-from pendulum import timezone
+
 
 # ── DAG definition ──────────────────────────────────────────────────────────
 with DAG(
     dag_id="news_audio_pipeline",
     start_date=datetime(2024, 1, 1),
-    schedule="30 6 * * *",
+    schedule="@daily",
     catchup=False,
-    timezone=timezone("America/Sao_Paulo"),  # Airflow respects local time
     tags=["news", "audio"],
 ) as dag:
 
     @task()
     def read_emails():
-        from src.email_reader import email_reader
+        from utils.email_reader import email_reader
         news_list = email_reader()
-        return news_list  # retorno será serializado como XCom
+        return news_list 
 
     @task()
     def extract_content(news_list: list):
-        from src.content_filter import extract_content_from_html
+        from utils.content_filter import extract_content_from_html
         filtered_content = extract_content_from_html(news_list)
         return filtered_content
 
     @task()
     def filter_content(filtered_content: list):
-        from src.content_filter import filter_news
+        from utils.content_filter import filter_news
         with open("/opt/airflow/config/credentials/api_keys.json", "r") as f:
             credentials_file = json.load(f)
         cleaned_content = [filter_news(content, credentials_file) for content in filtered_content]
@@ -40,7 +38,7 @@ with DAG(
 
     @task()
     def generate_audios(cleaned_content: list):
-        from src.audio_generator import generate_audio
+        from utils.audio_generator import generate_audio
         with open("/opt/airflow/config/credentials/api_keys.json", "r") as f:
             credentials_file = json.load(f)
 
@@ -49,11 +47,25 @@ with DAG(
         os.makedirs(audio_folder_path, exist_ok=True)
         os.makedirs(text_folder_path, exist_ok=True)
 
-        for content in cleaned_content:
-            generate_audio(content, credentials_file)
+        paths = [generate_audio(content, credentials_file) for content in cleaned_content]
+        return paths    
+    @task
+    def send_audio(paths: list):
+        from utils.audio_sender import upload_file
+        with open("/opt/airflow/config/credentials/api_keys.json", "r") as f:
+            credentials_file = json.load(f)
+
+        bucket_name = "amzn-s3-news-letter-audios"
+        for path in paths:
+            object_name = os.path.basename(path)
+            upload_file(credentials_file,path,bucket_name,object_name)
+
+        
+        
 
     # ── Sequenciamento ───────────────────────────────────────────────────────
     news         = read_emails()
     extracted    = extract_content(news)
     cleaned      = filter_content(extracted)
-    generate_audios(cleaned)
+    audio_files  = generate_audios(cleaned)
+    send_audio(audio_files)
