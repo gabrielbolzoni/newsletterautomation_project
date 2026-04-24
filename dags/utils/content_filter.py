@@ -112,7 +112,7 @@ def filter_news(formatted_text:str,credentials_file) -> json:
     content = response.output_text
     data_dict = json.loads(content)
 
-    file_name = f"data\\text_files\{datetime.now().strftime('%H-%M-%S')}.json"
+    file_name = f"/opt/airflow/data/text_files/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.json"
     with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(data_dict, f, ensure_ascii=False)
     return data_dict

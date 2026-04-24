@@ -1,8 +1,6 @@
 from pathlib import Path
 from datetime import date
 from pathlib import Path
-import os
-import json
 from openai import OpenAI
 
 
@@ -12,9 +10,8 @@ def generate_audio(newsletter_content: dict, credentials_file):
 )
     source = newsletter_content["source"]
     file_name = f"{source}_{date.today().strftime('%Y_%m_%d')}.mp3"
-    audio_folder_path = Path("data\\audio_files")
+    audio_folder_path = Path("/opt/airflow/data/audio_files")
     file_path = audio_folder_path.joinpath(file_name)
-
     with client.audio.speech.with_streaming_response.create(
         model="gpt-4o-mini-tts",
         instructions = """
@@ -49,5 +46,7 @@ def generate_audio(newsletter_content: dict, credentials_file):
                 """
         ) as response:
                 response.stream_to_file(file_path)
+                
+    return str(file_path)
 
 
