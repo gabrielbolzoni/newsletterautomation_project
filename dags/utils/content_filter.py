@@ -62,6 +62,11 @@ def filter_news(formatted_text:str,credentials_file) -> json:
     response = client.responses.create(
         model="gpt-5-nano",
         reasoning={"effort": "low"},
+        text={
+            "format": {
+                "type": "json_object" 
+            }
+        },
         input=[
             {
                 "role": "system",
@@ -83,6 +88,7 @@ def filter_news(formatted_text:str,credentials_file) -> json:
                     - Remova CTAs, chamadas comerciais, links e referências visuais.
                     - Não reescreva de forma criativa.
                     - Não adicione informações novas.
+                    - Resuma a notícia em até 1200 caracteres.
                     5. Preserve o texto em português.
                     6. Não explique decisões, não adicione comentários e não inclua texto fora do formato solicitado.
 
