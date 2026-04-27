@@ -13,7 +13,7 @@ from googleapiclient.errors import HttpError
 # If modifying these scopes, delete the file token.json.
 
 
-def email_reader():
+def email_reader(senders_json):
     """
     Fetches unread newsletter emails from specific senders via the Gmail API,
     extracts their HTML content, and marks them as read.
@@ -51,7 +51,7 @@ def email_reader():
     try:
         # Call the Gmail API
         service = build("gmail", "v1", credentials=creds)
-        senders_query = "from:(contato@thenewscc.com.br OR newsletter@filipedeschamps.com.br)" 
+        senders_query = "from:(" + " OR ".join(senders_json) + ")"
         query = f"is:unread {senders_query}"
 
         results = (

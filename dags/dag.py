@@ -8,6 +8,8 @@ from datetime import datetime
 from airflow.models import Variable
 
 # Na DAG ou na task
+senders = Variable.get("newsletter_senders")
+senders_json = json.loads(senders)
 audio_model_config = Variable.get("audio_model_config")
 audio_model_config_json = json.loads(audio_model_config)
 bucket_name = Variable.get("s3_bucket_name")
@@ -22,9 +24,9 @@ with DAG(
 ) as dag:
 
     @task()
-    def read_emails():
+    def read_emails(senders_json):
         from utils.email_reader import email_reader
-        news_list = email_reader()
+        news_list = email_reader(senders_json)
         return news_list 
 
     @task()
@@ -63,12 +65,13 @@ with DAG(
         for path in paths:
             object_name = os.path.basename(path)
             upload_file(credentials_file,path,bucket_name,object_name)
-        
+    
         
     # ── Sequenciamento ───────────────────────────────────────────────────────
-    news         = read_emails()
+    news         = read_emails(senders_json)
     extracted    = extract_content(news)
     cleaned      = filter_content(extracted)
     audio_files  = generate_audios(cleaned,audio_model_config_json)
     send_audio(audio_files,bucket_name)
+    
     
