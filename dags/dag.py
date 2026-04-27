@@ -56,7 +56,7 @@ with DAG(
 
         paths = [generate_audio(content, credentials_file, audio_model_config_json) for content in cleaned_content]
         return paths    
-    @task
+    @task()
     def send_audio(paths: list, bucket_name: str):
         from utils.audio_sender import upload_file
         with open("/opt/airflow/config/credentials/api_keys.json", "r") as f:
