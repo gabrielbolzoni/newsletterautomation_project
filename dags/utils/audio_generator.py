@@ -4,14 +4,32 @@ from pathlib import Path
 from openai import OpenAI
 
 
-def generate_audio(newsletter_content: dict, credentials_file, audio__model_config_json: dict):
+def generate_audio(newsletter_content: dict, credentials_file, audio_model_config_json: dict):
+    """
+    Converts newsletter content into an MP3 audio file using
+    text-to-speech API, streaming the result directly to disk.
+
+    Builds the output filename from the newsletter source and today's date,
+    then streams the synthesized speech to the Airflow audio files directory.
+    Model, voice, and speed are fully configurable via the config argument.
+
+    Args:
+        newsletter_content (dict):
+            newsletter content after being formatted by the AI model
+        credentials_file:
+            json file containing the necessary API keys
+        audio_model_config_json (dict):
+            dictionary with the TTS model configuration (model, voice, speed)
+
+    Returns:
+        file_path: path of the generated audio.It is passed to the function responsible for sending the audio to the S3 bucket.
+    """
     client = OpenAI(
     api_key=credentials_file["openAI"],
-)
-
-    model = audio__model_config_json["model"]
-    speed = audio__model_config_json["speed"]
-    voice = audio__model_config_json["voice"]
+        )    
+    model = audio_model_config_json["model"]
+    speed = audio_model_config_json["speed"]
+    voice = audio_model_config_json["voice"]
 
     source = newsletter_content["source"]
     file_name = f"{source}_{date.today().strftime('%Y_%m_%d')}.mp3"

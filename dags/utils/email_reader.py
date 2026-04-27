@@ -14,8 +14,21 @@ from googleapiclient.errors import HttpError
 
 
 def email_reader():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail messages.
+    """
+    Fetches unread newsletter emails from specific senders via the Gmail API,
+    extracts their HTML content, and marks them as read.
+
+    Authenticates using OAuth2 credentials stored locally. On the first run,
+    it triggers an authorization flow and saves the token for future use.
+    Targets emails from a hardcoded list of newsletter senders and returns
+    their decoded HTML bodies as structured data. Each processed message is
+    marked as read via a batchModify call.
+
+    Returns:
+        news_list: list with all html contents extracted from the emails
+
+    Raises:
+        HttpError: error description for when the email's content couldnt be extracted
     """
     SCOPES = ["https://www.googleapis.com/auth/gmail.modify"]
     creds = None

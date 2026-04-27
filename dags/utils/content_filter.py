@@ -12,6 +12,23 @@ from bs4 import BeautifulSoup
 
 def extract_content_from_html(list_emails: list[dict]) -> list[str]:
     
+    """
+    Extracts and cleans readable text from raw HTML newsletter emails,
+    preserving topic structure for downstream AI processing.
+
+    Parses each email's HTML body using BeautifulSoup, strips scripts and
+    styles, and collects headings and paragraphs. URLs are removed and
+    whitespace is normalized. Headings are wrapped in a topic marker to
+    help the AI model identify content sections in the next pipeline step.
+
+    Args:
+        list_emails (list[dict]):
+            list of html contents extracted from the newslettes
+
+    Returns:
+        list_emails_clean: list of sanitized newsletter content
+    """
+    
     list_emails_clean = []
 
     for email in list_emails:
@@ -56,6 +73,24 @@ def extract_content_from_html(list_emails: list[dict]) -> list[str]:
     return list_emails_clean
 
 def filter_news(formatted_text:str,credentials_file) -> json:
+    """
+    Sends pre-formatted newsletter text to an OpenAI model for AI-powered
+    content curation, returning structured news data as a JSON object.
+
+    Authenticates with the OpenAI API using a credentials file, submits the
+    text with a system prompt that instructs the model to act as a content
+    curation agent, and parses the JSON response. The result is also persisted
+    to a timestamped file in the Airflow data directory for auditing purposes.
+
+    Args:
+        formatted_text (str):
+            formatted newsletter content
+        credentials_file:
+            json file containing the necessary API keys
+
+    Returns:
+        data_dict: # TODO: describe
+    """
     client = OpenAI(
     api_key=credentials_file["openAI"],
     )
