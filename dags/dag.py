@@ -8,10 +8,10 @@ from datetime import datetime
 from airflow.models import Variable
 
 # Na DAG ou na task
-senders = Variable.get("newsletter_senders")
-senders_json = json.loads(senders)
-audio_model_config = Variable.get("audio_model_config")
-audio_model_config_json = json.loads(audio_model_config)
+# senders = Variable.get("newsletter_senders")
+# senders_json = json.loads(senders)
+# audio_model_config = Variable.get("audio_model_config")
+# audio_model_config_json = json.loads(audio_model_config)
 bucket_name = Variable.get("s3_bucket_name")
 
 # ── DAG definition ──────────────────────────────────────────────────────────
@@ -24,9 +24,19 @@ with DAG(
 ) as dag:
 
     @task()
-    def read_emails(senders_json):
+    def get_config():
+        from utils.get_config import get_audio_config, get_senders
+        configs = {
+            "senders": get_senders(),
+            "audio_config": get_audio_config()
+        }
+        return configs
+
+    @task()
+    def read_emails(configs: dict):
         from utils.email_reader import email_reader
-        news_list = email_reader(senders_json)
+        senders_list = configs["senders"]
+        news_list = email_reader(senders_list)
         return news_list 
 
     @task()
@@ -44,17 +54,17 @@ with DAG(
         return cleaned_content
 
     @task()
-    def generate_audios(cleaned_content: list, audio_model_config_json: dict):
+    def generate_audios(cleaned_content: list, configs: dict):
         from utils.audio_generator import generate_audio
         with open("/opt/airflow/config/credentials/api_keys.json", "r") as f:
             credentials_file = json.load(f)
-
+        audio_config = configs["audio_config"]
         audio_folder_path = Path("/opt/airflow/data/audio_files")
         text_folder_path = Path("/opt/airflow/data/text_files")
         os.makedirs(audio_folder_path, exist_ok=True)
         os.makedirs(text_folder_path, exist_ok=True)
 
-        paths = [generate_audio(content, credentials_file, audio_model_config_json) for content in cleaned_content]
+        paths = [generate_audio(content, credentials_file, audio_config) for content in cleaned_content]
         return paths    
     @task()
     def send_audio(paths: list, bucket_name: str):
@@ -68,10 +78,11 @@ with DAG(
     
         
     # ── Sequenciamento ───────────────────────────────────────────────────────
-    news         = read_emails(senders_json)
+    configs      = get_config()
+    news         = read_emails(configs)
     extracted    = extract_content(news)
     cleaned      = filter_content(extracted)
-    audio_files  = generate_audios(cleaned,audio_model_config_json)
+    audio_files  = generate_audios(cleaned,configs)
     send_audio(audio_files,bucket_name)
     
     
