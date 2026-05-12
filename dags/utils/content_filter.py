@@ -33,7 +33,6 @@ def extract_content_from_html(list_emails: list[dict]) -> list[str]:
 
     for email in list_emails:
         html_content = email["content"]
-        sender = email["sender"]
         
         # 'lxml' é o parser mais robusto para newsletters
         soup = BeautifulSoup(html_content, 'lxml')
@@ -66,9 +65,8 @@ def extract_content_from_html(list_emails: list[dict]) -> list[str]:
                 else:
                     cleaned_paragraphs.append(text)
 
-        header = f"FONTE: {sender}\n"
         full_body = "\n".join(cleaned_paragraphs)
-        list_emails_clean.append(header + full_body)
+        list_emails_clean.append(full_body)
             
     return list_emails_clean
 
@@ -112,7 +110,7 @@ def filter_news(formatted_text:str,credentials_file) -> json:
 
                     DEFINIÇÕES:
                     - NOTÍCIA: Informação factual sobre tecnologia, ciência, negócios, economia ou acontecimentos do mundo.
-                    - RUÍDO: Propaganda, anúncio patrocinado, venda de curso, depoimento pessoal, chamada comercial, link de afiliado ou aviso administrativo.
+                    - RUÍDO: Propaganda, anúncio patrocinado, venda de curso, depoimento pessoal, chamada comercial, link de afiliado ou aviso administrativo, blocos começados por "Apresentado por".
 
                     REGRAS:
                     1. O texto de entrada contém vários blocos separados exatamente por "\n---\n".
@@ -130,8 +128,11 @@ def filter_news(formatted_text:str,credentials_file) -> json:
                     FORMATO DE SAÍDA:
                     - Retorne um único objeto JSON válido.
                     - O JSON deve conter exatamente as chaves:
-                    - "source": string com o nome do remetente da newsletter.
                     - "content": string contendo todas as notícias concatenadas.
+                    - "title": título criativo que descreva de modo geral os assuntos da newsletter.
+                    - "main_topics": lista de 3 a 5 palavras-chave ÚNICAS, sem repetição.
+                        Use APENAS valores desta lista: ["Economia","Esporte","Tecnologia","Escândalo","Política"].
+                        Retorne como array JSON. Ex: ["Tecnologia", "Economia"]
                     - Dentro de "content", separe cada notícia usando exatamente:
                     "\n---\n"
                     - Não inclua nenhum texto fora do JSON."""
@@ -140,21 +141,22 @@ def filter_news(formatted_text:str,credentials_file) -> json:
             },
             {
                 "role": "user",
-                "content": f"""O texto abaixo começa com uma linha no formato:
-                                "FONTE: Nome do Remetente"
-
-                                Use esse valor para preencher o campo "source".
-
-                                TEXTO PARA ANÁLISE:
+                "content": f"""
                                 {formatted_text}"""
             }
         ]
     )
     content = response.output_text
     data_dict = json.loads(content)
-
-    file_name = f"/opt/airflow/data/text_files/{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}.json"
+    title = data_dict["title"]
+    data_dict["main_topics"] = ", ".join(dict.fromkeys(data_dict["main_topics"]))
+    file_name = f"/opt/airflow/data/text_files/{title} - {datetime.now().strftime('%Y-%m-%d')}.json"
     with open(file_name, 'w', encoding='utf-8') as f:
             json.dump(data_dict, f, ensure_ascii=False)
-    return data_dict
+
+    return {
+        "content": data_dict["content"],
+        "title": data_dict["title"],
+        "main_topics": data_dict["main_topics"],
+    }
 
