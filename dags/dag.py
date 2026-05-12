@@ -75,7 +75,11 @@ with DAG(
         for path in paths:
             object_name = os.path.basename(path)
             upload_file(credentials_file,path,bucket_name,object_name)
-    
+    @task()
+    def populate_audio_list(news: list, cleaned_content: list, configs: dict):
+        from utils.table_insert import table_insert
+        for n, c in zip(news, cleaned_content):
+            table_insert(n, c, configs["audio_config"])
         
     # ── Sequenciamento ───────────────────────────────────────────────────────
     configs      = get_config()
@@ -83,6 +87,7 @@ with DAG(
     extracted    = extract_content(news)
     cleaned      = filter_content(extracted)
     audio_files  = generate_audios(cleaned,configs)
-    send_audio(audio_files,bucket_name)
-    
-    
+    uploaded      = send_audio(audio_files, bucket_name)
+    registro      = populate_audio_list(news, cleaned, configs)
+
+    uploaded >> registro
