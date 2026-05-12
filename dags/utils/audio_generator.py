@@ -89,8 +89,8 @@ def generate_audio(newsletter_content: dict, credentials_file, audio_model_confi
         str: path of the generated audio, passed to the S3 upload function.
     """
 
-    source = newsletter_content["source"]
-    file_name = f"{source}_{date.today().strftime('%Y_%m_%d')}.mp3"
+    title = newsletter_content["title"]
+    file_name = f"{title} - {date.today().strftime('%Y_%m_%d')}.mp3"
     audio_folder_path = Path("/opt/airflow/data/audio_files")
     audio_file_path = audio_folder_path.joinpath(file_name)
 
